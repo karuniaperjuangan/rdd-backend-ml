@@ -1,0 +1,10 @@
+moviepy
+fastapi>=0.94.0
+torch
+onnx
+onnxruntime>=1.14.1
+ultralytics
+python-dotenv
+Pillow>= 10.1
+numpy
+#onnxruntime-gpu>=1.16.1
