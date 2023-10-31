@@ -11,10 +11,13 @@ from tqdm import tqdm
 import ast
 from PIL import Image
 from moviepy.editor import VideoFileClip
-
+from models.predict_request import PredictRequestModel
+import uuid
+import requests
 router = APIRouter()
 
 model_path = os.path.join("onnx_model",[f for f in os.listdir("onnx_model") if f.endswith(".onnx")][0])
+print(f"Loading model from {model_path}")
 model = onnx.load(model_path) 
 class_dict = ast.literal_eval(model.metadata_props[-1].value)
 del model
@@ -43,25 +46,32 @@ def predict_frame(array: np.ndarray):
 
 
 @router.post("/api/predict")
-async def predict(file: UploadFile = File(...)):
-    with open("temp.mp4", 'wb') as buffer:
-        buffer.write(file.file.read())
-    clip = VideoFileClip("temp.mp4")
-    
-    result = []
-    frame_count = 0
-    for frame_idx,frame in tqdm(enumerate(clip.iter_frames()),total=int(clip.fps*clip.duration)):
-        frame_count += 1
-        prediction = predict_frame(frame)
-        if len(prediction) > 0:
-            result.append({'frame': frame_idx,'time':frame_idx/clip.fps, 'prediction': prediction})
-    response = {'metadata':{
-        'filename': 'Contoh.mp4',
-        'fps': clip.fps,
-        'duration': clip.duration,
-        'total_frames': frame_count
-    },'result': result}
-    
-    clip.close()
-    os.remove("temp.mp4")
+async def predict(body: PredictRequestModel):
+    video_id = str(uuid.uuid4())
+    try:
+        if body.url.endswith("/"):
+            body.url = body.url[:-1]
+        file = requests.get(body.url)
+        with open(f"temp-{video_id}.mp4", 'wb') as f:
+            f.write(file.content)
+        clip = VideoFileClip(f"temp-{video_id}.mp4")
+        
+        result = []
+        frame_count = 0
+        for frame_idx,frame in tqdm(enumerate(clip.iter_frames()),total=int(clip.fps*clip.duration)):
+            frame_count += 1
+            prediction = predict_frame(frame)
+            if len(prediction) > 0:
+                result.append({'frame': frame_idx,'time':frame_idx/clip.fps, 'prediction': prediction})
+        response = {'metadata':{
+            'filename': f'{body.url.split("/")[-1]}',
+            'fps': clip.fps,
+            'duration': clip.duration,
+            'total_frames': frame_count
+        },'result': result}
+        clip.close()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        os.remove(f"temp-{video_id}.mp4")
     return response

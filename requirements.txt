@@ -7,4 +7,6 @@ ultralytics
 python-dotenv
 Pillow>= 10.1
 numpy
+requests
+pydantic<2.0.0
 #onnxruntime-gpu>=1.16.1
