@@ -55,17 +55,26 @@ async def predict(body: PredictRequestModel):
         with open(f"temp-{video_id}.mp4", 'wb') as f:
             f.write(file.content)
         clip = VideoFileClip(f"temp-{video_id}.mp4")
-        
+        if body.prediction_fps == None:
+            body.prediction_fps = clip.fps
         result = []
         frame_count = 0
+        prediction_count = 0
+        predicted_frames_idx = np.arange(0,clip.fps*clip.duration,clip.fps/body.prediction_fps).astype(int)
+        #print(predicted_frames_idx)
         for frame_idx,frame in tqdm(enumerate(clip.iter_frames()),total=int(clip.fps*clip.duration)):
             frame_count += 1
+            if frame_idx not in predicted_frames_idx:
+                continue
+            prediction_count += 1
             prediction = predict_frame(frame)
             if len(prediction) > 0:
                 result.append({'frame': frame_idx,'time':frame_idx/clip.fps, 'prediction': prediction})
+        print(f"Predicted {prediction_count} frames out of {frame_count} frames")
         response = {'metadata':{
             'filename': f'{body.url.split("/")[-1]}',
-            'fps': clip.fps,
+            'video_fps': clip.fps,
+            'prediction_fps': body.prediction_fps,
             'duration': clip.duration,
             'total_frames': frame_count
         },'result': result}
