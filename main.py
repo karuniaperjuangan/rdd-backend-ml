@@ -4,6 +4,7 @@ from typing import List
 from dotenv import load_dotenv
 import os
 from routers.predict import router as predict_router
+from routers.location import router as location_router
 
 load_dotenv()
 
@@ -18,6 +19,7 @@ app.add_middleware(
 )
 
 app.include_router(predict_router)
+app.include_router(location_router)
 
 @app.get("/")
 
