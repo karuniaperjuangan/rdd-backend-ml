@@ -8,7 +8,7 @@ router = APIRouter()
 
 
 @router.post("/api/location/synchronize")
-async def predict(body: LocationRequestModel):
+def predict(body: LocationRequestModel):
     try:
         micro_times = []
         latitudes = []

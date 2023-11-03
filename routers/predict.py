@@ -46,7 +46,7 @@ def predict_frame(array: np.ndarray):
 
 
 @router.post("/api/predict")
-async def predict(body: PredictRequestModel):
+def predict(body: PredictRequestModel):
     video_id = str(uuid.uuid4())
     try:
         if body.url.endswith("/"):
